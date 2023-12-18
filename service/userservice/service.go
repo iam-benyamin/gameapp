@@ -20,11 +20,20 @@ type RegisterUser struct {
 	PhoneNumber string
 }
 
+type RegisterRequest struct {
+	Name        string
+	PhoneNumber string
+}
+
+func New(repo Repository) Service {
+	return Service{repo: repo}
+}
+
 type RegisterResponse struct {
 	User entity.User
 }
 
-func (s Service) Register(req RegisterUser) (RegisterResponse, error) {
+func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
 	// TODO: we should verify phone number by verification code
 
 	// validate phone number

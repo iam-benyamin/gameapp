@@ -8,7 +8,7 @@ func IsValid(phoneNumber string) bool {
 		return false
 	}
 
-	if phoneNumber[0:3] != "09" {
+	if phoneNumber[0:2] != "09" {
 		return false
 	}
 
