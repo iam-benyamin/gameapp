@@ -1,6 +1,8 @@
 package userservice
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"gameapp/entity"
 	"gameapp/pkg/phonenumber"
@@ -9,20 +11,22 @@ import (
 type Repository interface {
 	IsPhoneNumberUnique(phoneNumber string) (bool, error)
 	Register(u entity.User) (entity.User, error)
+	GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error)
 }
 
 type Service struct {
 	repo Repository
 }
 
-type RegisterUser struct {
-	Name        string
-	PhoneNumber string
-}
+//type RegisterUser struct {
+//	Name        string
+//	PhoneNumber string
+//}
 
 type RegisterRequest struct {
-	Name        string
-	PhoneNumber string
+	Name        string `json:"name"`         // struct tag are like meta information and compiler will ignore them
+	PhoneNumber string `json:"phone_number"` // but some package like json marshal will look at them
+	Password    string `json:"password"`
 }
 
 func New(repo Repository) Service {
@@ -56,11 +60,22 @@ func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
 		return RegisterResponse{}, fmt.Errorf("name lenght should be grater than 3")
 	}
 
+	// TODO: check the password with regex pattern
+	// validate password
+	if len(req.Password) < 8 {
+		return RegisterResponse{}, fmt.Errorf("password lenght sholud be grater than 8")
+	}
+
+	// TODO: use bcrypt
+	//passwd := []byte(req.Password)
+	//bcrypt.GenerateFromPassword(passwd, 0)
+
 	// create new user in storage
 	user := entity.User{
 		ID:          0,
 		Name:        req.Name,
 		PhoneNumber: req.PhoneNumber,
+		Password:    GetMD5Hash(req.Password),
 	}
 	createdUser, err := s.repo.Register(user)
 	if err != nil {
@@ -68,4 +83,36 @@ func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
 	}
 
 	return RegisterResponse{User: createdUser}, nil
+}
+
+type LoginRequest struct {
+	PhoneNumber string `json:"phone_number"`
+	Password    string `json:"password"`
+}
+
+type LoginResponse struct {
+}
+
+func (s Service) Login(req LoginRequest) (LoginResponse, error) {
+	// TODO: it would be better to user two separated method for existence check and GetUserByPhoneNumber
+
+	user, exist, err := s.repo.GetUserByPhoneNumber(req.PhoneNumber)
+	if err != nil {
+		return LoginResponse{}, fmt.Errorf("unexpected error: %w", err)
+	}
+
+	if !exist {
+		return LoginResponse{}, fmt.Errorf("username or password is not correct")
+	}
+
+	if user.Password != GetMD5Hash(req.Password) {
+		return LoginResponse{}, fmt.Errorf("username or password is not correct")
+	}
+
+	return LoginResponse{}, nil
+}
+
+func GetMD5Hash(text string) string {
+	hash := md5.Sum([]byte(text))
+	return hex.EncodeToString(hash[:])
 }
