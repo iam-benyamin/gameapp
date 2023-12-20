@@ -8,7 +8,7 @@ import (
 	"gameapp/pkg/phonenumber"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 type Repository interface {
@@ -154,26 +154,27 @@ type Claims struct {
 	UserID           uint
 }
 
+func (c Claims) Valid() error {
+	// TODO: implement me
+	panic("implement me")
+}
+
 func createToken(userID uint, signKey string) (string, error) {
-	// create a signer for rsa 256
 	// TODO: replace with rsa 256
 
-	// set our claims
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			// set the expire time
 			// see https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 15)),
 		},
 		UserID: userID,
 	}
 
-	// TODO: implement needed methods for claimes
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := accessToken.SignedString([]byte(signKey))
 	if err != nil {
 		return "", err
 	}
-	// Creat token string
+
 	return tokenString, nil
 }
