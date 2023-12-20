@@ -6,16 +6,21 @@ import (
 	"fmt"
 	"gameapp/entity"
 	"gameapp/pkg/phonenumber"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type Repository interface {
 	IsPhoneNumberUnique(phoneNumber string) (bool, error)
 	Register(u entity.User) (entity.User, error)
 	GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error)
+	GetUserByID(UserID uint) (entity.User, error)
 }
 
 type Service struct {
-	repo Repository
+	signKey string
+	repo    Repository
 }
 
 //type RegisterUser struct {
@@ -29,8 +34,8 @@ type RegisterRequest struct {
 	Password    string `json:"password"`
 }
 
-func New(repo Repository) Service {
-	return Service{repo: repo}
+func New(repo Repository, signKey string) Service {
+	return Service{repo: repo, signKey: signKey}
 }
 
 type RegisterResponse struct {
@@ -91,6 +96,7 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
+	AccessToken string `json:"access_token"`
 }
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
@@ -109,10 +115,65 @@ func (s Service) Login(req LoginRequest) (LoginResponse, error) {
 		return LoginResponse{}, fmt.Errorf("username or password is not correct")
 	}
 
-	return LoginResponse{}, nil
+	token, err := createToken(user.ID, s.signKey)
+	if err != nil {
+		return LoginResponse{}, fmt.Errorf("unexpected error : %w", err)
+	}
+
+	return LoginResponse{AccessToken: token}, nil
 }
 
 func GetMD5Hash(text string) string {
 	hash := md5.Sum([]byte(text))
 	return hex.EncodeToString(hash[:])
+}
+
+type ProfileRequest struct {
+	UserID uint
+}
+
+type ProfileResponse struct {
+	Name string `json:"name"`
+}
+
+// Profile all request should be sanitized
+func (s Service) Profile(req ProfileRequest) (ProfileResponse, error) {
+	user, err := s.repo.GetUserByID(req.UserID)
+	if err != nil {
+		// I don't expect the repository call return "not found" error.
+		// because I assume the interactor input is sanitized
+		// TODO: we can use Rich Error
+		return ProfileResponse{}, fmt.Errorf("unexpected error : %w", err)
+	}
+
+	return ProfileResponse{Name: user.Name}, nil
+}
+
+type Claims struct {
+	RegisteredClaims jwt.RegisteredClaims
+	UserID           uint
+}
+
+func createToken(userID uint, signKey string) (string, error) {
+	// create a signer for rsa 256
+	// TODO: replace with rsa 256
+
+	// set our claims
+	claims := Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			// set the expire time
+			// see https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 15)),
+		},
+		UserID: userID,
+	}
+
+	// TODO: implement needed methods for claimes
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := accessToken.SignedString([]byte(signKey))
+	if err != nil {
+		return "", err
+	}
+	// Creat token string
+	return tokenString, nil
 }

@@ -6,14 +6,9 @@ import (
 	"gameapp/entity"
 )
 
-func (d MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
-	user := entity.User{}
-	//var createdAt time.Time
-	var createdAt []uint8
-
+func (d *MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
 	row := d.db.QueryRow(`SELECT * FROM users WHERE phone_number = ?`, phoneNumber)
-
-	err := row.Scan(&user.ID, &user.Name, &user.PhoneNumber, &user.Password, &createdAt)
+	_, err := scanUser(row)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return true, nil
@@ -25,7 +20,7 @@ func (d MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
 	return false, nil
 }
 
-func (d MySQLDB) Register(u entity.User) (entity.User, error) {
+func (d *MySQLDB) Register(u entity.User) (entity.User, error) {
 	res, err := d.db.Exec(`INSERT INTO users(name, phone_number, password) values(?, ?, ?)`, u.Name, u.PhoneNumber, u.Password)
 	if err != nil {
 		return entity.User{}, fmt.Errorf("can't execute command: %w", err)
@@ -37,14 +32,10 @@ func (d MySQLDB) Register(u entity.User) (entity.User, error) {
 	return u, nil
 }
 
-func (d MySQLDB) GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error) {
-	user := entity.User{}
-	//var createdAt time.Time
-	var createdAt []uint8
-
+func (d *MySQLDB) GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error) {
 	row := d.db.QueryRow(`SELECT * FROM users WHERE phone_number = ?`, phoneNumber)
 
-	err := row.Scan(&user.ID, &user.Name, &user.PhoneNumber, &user.Password, &createdAt)
+	user, err := scanUser(row)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return entity.User{}, false, nil
@@ -54,4 +45,28 @@ func (d MySQLDB) GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, er
 	}
 
 	return user, true, nil
+}
+
+func (d *MySQLDB) GetUserByID(UserID uint) (entity.User, error) {
+	row := d.db.QueryRow(`SELECT * FROM users WHERE id = ?`, UserID)
+
+	user, err := scanUser(row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return entity.User{}, fmt.Errorf("record not found")
+		}
+
+		return entity.User{}, fmt.Errorf("unexpectd err: %w", err)
+	}
+
+	return user, nil
+}
+
+func scanUser(row *sql.Row) (entity.User, error) {
+	var user entity.User
+	var createdAt []uint8
+
+	err := row.Scan(&user.ID, &user.Name, &user.PhoneNumber, &user.Password, &createdAt)
+
+	return user, err
 }
