@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"gameapp/entity"
 	"gameapp/pkg/phonenumber"
-	"time"
-
-	"github.com/golang-jwt/jwt/v4"
 )
 
 type Repository interface {
@@ -18,15 +15,19 @@ type Repository interface {
 	GetUserByID(UserID uint) (entity.User, error)
 }
 
-type Service struct {
-	signKey string
-	repo    Repository
+type AuthGenerator interface {
+	CreateAccessToken(user entity.User) (string, error)
+	CreateRefreshToken(user entity.User) (string, error)
 }
 
-//type RegisterUser struct {
-//	Name        string
-//	PhoneNumber string
-//}
+type Service struct {
+	auth AuthGenerator
+	repo Repository
+}
+
+func New(authGenerator AuthGenerator, repo Repository) Service {
+	return Service{auth: authGenerator, repo: repo}
+}
 
 type RegisterRequest struct {
 	Name        string `json:"name"`         // struct tag are like meta information and compiler will ignore them
@@ -34,8 +35,8 @@ type RegisterRequest struct {
 	Password    string `json:"password"`
 }
 
-func New(repo Repository, signKey string) Service {
-	return Service{repo: repo, signKey: signKey}
+func New(repo Repository) Service {
+	return Service{repo: repo}
 }
 
 type RegisterResponse struct {
@@ -96,7 +97,8 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	AccessToken string `json:"access_token"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
@@ -115,12 +117,17 @@ func (s Service) Login(req LoginRequest) (LoginResponse, error) {
 		return LoginResponse{}, fmt.Errorf("username or password is not correct")
 	}
 
-	token, err := createToken(user.ID, s.signKey)
+	accessToken, err := s.auth.CreateAccessToken(user)
+	if err != nil {
+		return LoginResponse{}, fmt.Errorf("unexpected error: %w", err)
+	}
+
+	refreshToken, err := s.auth.CreateRefreshToken(user)
 	if err != nil {
 		return LoginResponse{}, fmt.Errorf("unexpected error : %w", err)
 	}
 
-	return LoginResponse{AccessToken: token}, nil
+	return LoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
 }
 
 func GetMD5Hash(text string) string {
@@ -147,34 +154,4 @@ func (s Service) Profile(req ProfileRequest) (ProfileResponse, error) {
 	}
 
 	return ProfileResponse{Name: user.Name}, nil
-}
-
-type Claims struct {
-	RegisteredClaims jwt.RegisteredClaims
-	UserID           uint
-}
-
-func (c Claims) Valid() error {
-	// TODO: implement me
-	panic("implement me")
-}
-
-func createToken(userID uint, signKey string) (string, error) {
-	// TODO: replace with rsa 256
-
-	claims := Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			// see https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 15)),
-		},
-		UserID: userID,
-	}
-
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := accessToken.SignedString([]byte(signKey))
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
 }
