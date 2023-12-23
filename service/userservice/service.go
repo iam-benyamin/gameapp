@@ -35,10 +35,6 @@ type RegisterRequest struct {
 	Password    string `json:"password"`
 }
 
-func New(repo Repository) Service {
-	return Service{repo: repo}
-}
-
 type RegisterResponse struct {
 	User entity.User
 }

@@ -37,14 +37,14 @@ func main() {
 
 func userRegisterHandler(writer http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
-		fmt.Fprintf(writer, `{"error1": "invalid method"}`)
+		fmt.Fprintf(writer, `{"error": "invalid method"}`)
 
 		return
 	}
 
 	data, err := io.ReadAll(req.Body)
 	if err != nil {
-		writer.Write([]byte(fmt.Sprintf(`{"error2": "%s"}`, err.Error())))
+		writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
 
 		return
 	}
@@ -52,7 +52,7 @@ func userRegisterHandler(writer http.ResponseWriter, req *http.Request) {
 	var uReq userservice.RegisterRequest
 	err = json.Unmarshal(data, &uReq)
 	if err != nil {
-		writer.Write([]byte(fmt.Sprintf(`{"error3": "%s"}`, err.Error())))
+		writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
 
 		return
 	}
@@ -65,7 +65,7 @@ func userRegisterHandler(writer http.ResponseWriter, req *http.Request) {
 
 	_, err = userSvc.Register(uReq)
 	if err != nil {
-		writer.Write([]byte(fmt.Sprintf(`{"error4": "%s"}`, err.Error())))
+		writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
 
 		return
 	}
@@ -79,14 +79,14 @@ func healthCheckHandler(writer http.ResponseWriter, req *http.Request) {
 
 func userLoginHandler(writer http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
-		fmt.Fprintf(writer, `{"error1": "invalid method"}`)
+		fmt.Fprintf(writer, `{"error": "invalid method"}`)
 
 		return
 	}
 
 	data, err := io.ReadAll(req.Body)
 	if err != nil {
-		writer.Write([]byte(fmt.Sprintf(`{"error2": "%s"}`, err.Error())))
+		writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
 
 		return
 	}
@@ -94,7 +94,7 @@ func userLoginHandler(writer http.ResponseWriter, req *http.Request) {
 	var lReq userservice.LoginRequest
 	err = json.Unmarshal(data, &lReq)
 	if err != nil {
-		writer.Write([]byte(fmt.Sprintf(`{"error3": "%s"}`, err.Error())))
+		writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
 
 		return
 	}
@@ -107,14 +107,14 @@ func userLoginHandler(writer http.ResponseWriter, req *http.Request) {
 
 	resp, err := userSvc.Login(lReq)
 	if err != nil {
-		writer.Write([]byte(fmt.Sprintf(`{"error4": "%s"}`, err.Error())))
+		writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
 
 		return
 	}
 
 	data, err = json.Marshal(resp)
 	if err != nil {
-		writer.Write([]byte(fmt.Sprintf(`{"error3": "%s"}`, err.Error())))
+		writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
 
 		return
 	}
@@ -124,7 +124,7 @@ func userLoginHandler(writer http.ResponseWriter, req *http.Request) {
 
 func userProfileHandler(writer http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
-		fmt.Fprintf(writer, `{"error1": "invalid method"}`)
+		fmt.Fprintf(writer, `{"error": "invalid method"}`)
 
 		return
 	}
@@ -132,24 +132,25 @@ func userProfileHandler(writer http.ResponseWriter, req *http.Request) {
 	authSvc := authservice.New(JwtSignKey, AccessTokenSubject, RefreshTokenSubject,
 		AccessTokenExpireDuration, RefreshTokenExpireDuration)
 
-	auth := req.Header.Get("Authorization")
-	cliams, err := ParseJWT(auth)
+	authToken := req.Header.Get("Authorization")
+	claims, err := authSvc.ParseToken(authToken)
 	if err != nil {
-		fmt.Fprintf(writer, `{"error1": "token is not valid"}`)
+		fmt.Fprintf(writer, `{"error": "token is not valid"}`)
 	}
+
 	mysqlRepo := mysql.New()
 	userSvc := userservice.New(authSvc, mysqlRepo)
 
 	resp, err := userSvc.Profile(userservice.ProfileRequest{UserID: claims.UserID})
 	if err != nil {
-		writer.Write([]byte(fmt.Sprintf(`{"error4": "%s"}`, err.Error())))
+		writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
 
 		return
 	}
 
 	data, err := json.Marshal(resp)
 	if err != nil {
-		writer.Write([]byte(fmt.Sprintf(`{"error3": "%s"}`, err.Error())))
+		writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
 
 		return
 	}
