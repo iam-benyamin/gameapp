@@ -35,5 +35,3 @@ func New(config Config) *MySQLDB {
 
 	return &MySQLDB{config: config, db: db}
 }
-
-//
