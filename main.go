@@ -3,6 +3,7 @@ package main
 import (
 	"gameapp/config"
 	"gameapp/delivery/httpserver"
+	"gameapp/repository/migrator"
 	"gameapp/repository/mysql"
 	"gameapp/service/authservice"
 	"gameapp/service/userservice"
@@ -17,6 +18,8 @@ const (
 	RefreshTokenExpireDuration = time.Hour * 24 * 7
 )
 
+// TODO: show migration table name
+// TODO: add limit to Up and Down
 func main() {
 	cfg := config.Config{
 		HTTPServer: config.HTTPServer{Port: 1986},
@@ -35,6 +38,11 @@ func main() {
 			DBName:   "gameapp_db",
 		},
 	}
+
+	mgr := migrator.New(cfg.Mysql)
+	mgr.Up()
+	// mgr.Down()
+
 	authSvc, userSvc := setupServices(cfg)
 
 	server := httpserver.New(cfg, authSvc, userSvc)

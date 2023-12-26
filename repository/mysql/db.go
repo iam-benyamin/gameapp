@@ -22,7 +22,8 @@ type MySQLDB struct {
 }
 
 func New(config Config) *MySQLDB {
-	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@(%s:%d)/%s",
+	// parseTime=true change output of []uint8 to time.Time for mysql
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@(%s:%d)/%s?parseTime=true",
 		config.Username, config.Password, config.Host, config.Port, config.DBName,
 	))
 	if err != nil {
