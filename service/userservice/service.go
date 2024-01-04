@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gameapp/entity"
 	"gameapp/pkg/phonenumber"
+	"gameapp/pkg/richerror"
 )
 
 type Repository interface {
@@ -113,10 +114,12 @@ type LoginResponse struct {
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
 	// TODO: it would be better to user two separated method for existence check and GetUserByPhoneNumber
+	const op = "userservice.Login"
 
 	user, exist, err := s.repo.GetUserByPhoneNumber(req.PhoneNumber)
 	if err != nil {
-		return LoginResponse{}, fmt.Errorf("unexpected error: %w", err)
+		return LoginResponse{}, richerror.New(op).WithErr(err).
+			WithMeta(map[string]interface{}{"phone_number": req.PhoneNumber})
 	}
 
 	if !exist {
@@ -165,12 +168,11 @@ type ProfileResponse struct {
 
 // Profile all request should be sanitized
 func (s Service) Profile(req ProfileRequest) (ProfileResponse, error) {
+	const op = "userservice.Profile"
+
 	user, err := s.repo.GetUserByID(req.UserID)
 	if err != nil {
-		// I don't expect the repository call return "not found" error.
-		// because I assume the interactor input is sanitized
-		// TODO: we can use Rich Error
-		return ProfileResponse{}, fmt.Errorf("unexpected error : %w", err)
+		return ProfileResponse{}, richerror.New(op).WithErr(err).WithMeta(map[string]interface{}{"req": req})
 	}
 
 	return ProfileResponse{Name: user.Name}, nil
