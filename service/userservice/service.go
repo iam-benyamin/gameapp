@@ -4,13 +4,12 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"gameapp/dto"
 	"gameapp/entity"
-	"gameapp/pkg/phonenumber"
 	"gameapp/pkg/richerror"
 )
 
 type Repository interface {
-	IsPhoneNumberUnique(phoneNumber string) (bool, error)
 	Register(u entity.User) (entity.User, error)
 	GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error)
 	GetUserByID(UserID uint) (entity.User, error)
@@ -30,50 +29,7 @@ func New(authGenerator AuthGenerator, repo Repository) Service {
 	return Service{auth: authGenerator, repo: repo}
 }
 
-type RegisterRequest struct {
-	Name        string `json:"name"`         // struct tag are like meta information and compiler will ignore them
-	PhoneNumber string `json:"phone_number"` // but some package like json marshal will look at them
-	Password    string `json:"password"`
-}
-
-type UserInfo struct {
-	ID          uint   `json:"id"`
-	PhoneNumber string `json:"phone_number"`
-	Name        string `json:"name"`
-}
-
-type RegisterResponse struct {
-	User UserInfo `json:"user"`
-}
-
-func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
-	// TODO: we should verify phone number by verification code
-
-	// validate phone number
-	if !phonenumber.IsValid(req.PhoneNumber) {
-		return RegisterResponse{}, fmt.Errorf("phone number is not valid")
-	}
-
-	// check uniqueness of phone number
-	if isUnique, err := s.repo.IsPhoneNumberUnique(req.PhoneNumber); err != nil || !isUnique {
-		if err != nil {
-			return RegisterResponse{}, fmt.Errorf("unexpected error: %w", err)
-		}
-		if !isUnique {
-			return RegisterResponse{}, fmt.Errorf("phone number is not unique")
-		}
-	}
-
-	// validate name
-	if len(req.Name) < 3 {
-		return RegisterResponse{}, fmt.Errorf("name lenght should be grater than 3")
-	}
-
-	// TODO: check the password with regex pattern
-	// validate password
-	if len(req.Password) < 8 {
-		return RegisterResponse{}, fmt.Errorf("password lenght sholud be grater than 8")
-	}
+func (s Service) Register(req dto.RegisterRequest) (dto.RegisterResponse, error) {
 
 	// TODO: use bcrypt
 	//passwd := []byte(req.Password)
@@ -88,64 +44,50 @@ func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
 	}
 	createdUser, err := s.repo.Register(user)
 	if err != nil {
-		return RegisterResponse{}, fmt.Errorf("unexpected error: %w", err)
+		return dto.RegisterResponse{}, fmt.Errorf("unexpected error: %w", err)
 	}
 
-	return RegisterResponse{UserInfo{
+	return dto.RegisterResponse{dto.UserInfo{
 		ID:          createdUser.ID,
 		PhoneNumber: createdUser.PhoneNumber,
 		Name:        createdUser.Name,
 	}}, nil
 }
 
-type LoginRequest struct {
-	PhoneNumber string `json:"phone_number"`
-	Password    string `json:"password"`
-}
-
-type Tokens struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-}
-type LoginResponse struct {
-	User  UserInfo `json:"user"`
-	Token Tokens   `json:"token"`
-}
-
-func (s Service) Login(req LoginRequest) (LoginResponse, error) {
+func (s Service) Login(req dto.LoginRequest) (dto.LoginResponse, error) {
 	// TODO: it would be better to user two separated method for existence check and GetUserByPhoneNumber
 	const op = "userservice.Login"
 
 	user, exist, err := s.repo.GetUserByPhoneNumber(req.PhoneNumber)
 	if err != nil {
-		return LoginResponse{}, richerror.New(op).WithErr(err).
+		return dto.LoginResponse{}, richerror.New(op).WithErr(err).
 			WithMeta(map[string]interface{}{"phone_number": req.PhoneNumber})
 	}
 
 	if !exist {
-		return LoginResponse{}, fmt.Errorf("username or password is not correct")
+		return dto.LoginResponse{}, fmt.Errorf("username or password is not correct")
 	}
 
 	if user.Password != GetMD5Hash(req.Password) {
-		return LoginResponse{}, fmt.Errorf("username or password is not correct")
+		return dto.LoginResponse{}, fmt.Errorf("username or password is not correct")
 	}
 
 	accessToken, err := s.auth.CreateAccessToken(user)
 	if err != nil {
-		return LoginResponse{}, fmt.Errorf("unexpected error: %w", err)
+		return dto.LoginResponse{}, fmt.Errorf("unexpected error: %w", err)
 	}
 
 	refreshToken, err := s.auth.CreateRefreshToken(user)
 	if err != nil {
-		return LoginResponse{}, fmt.Errorf("unexpected error : %w", err)
+		return dto.LoginResponse{}, fmt.Errorf("unexpected error : %w", err)
 	}
 
-	return LoginResponse{
-		Token: Tokens{
+	return dto.LoginResponse{
+		Token: dto.Tokens{
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
 		},
-		User: UserInfo{
+		User: dto.UserInfo{
 			ID:          user.ID,
 			PhoneNumber: user.PhoneNumber,
 			Name:        user.Name,
@@ -158,22 +100,14 @@ func GetMD5Hash(text string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-type ProfileRequest struct {
-	UserID uint
-}
-
-type ProfileResponse struct {
-	Name string `json:"name"`
-}
-
 // Profile all request should be sanitized
-func (s Service) Profile(req ProfileRequest) (ProfileResponse, error) {
+func (s Service) Profile(req dto.ProfileRequest) (dto.ProfileResponse, error) {
 	const op = "userservice.Profile"
 
 	user, err := s.repo.GetUserByID(req.UserID)
 	if err != nil {
-		return ProfileResponse{}, richerror.New(op).WithErr(err).WithMeta(map[string]interface{}{"req": req})
+		return dto.ProfileResponse{}, richerror.New(op).WithErr(err).WithMeta(map[string]interface{}{"req": req})
 	}
 
-	return ProfileResponse{Name: user.Name}, nil
+	return dto.ProfileResponse{Name: user.Name}, nil
 }
