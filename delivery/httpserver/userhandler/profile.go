@@ -1,6 +1,7 @@
 package userhandler
 
 import (
+	"gameapp/config"
 	"gameapp/param"
 	"gameapp/pkg/httpmsg"
 	"gameapp/service/authservice"
@@ -10,7 +11,7 @@ import (
 
 func getClaims(c echo.Context) *authservice.Claims {
 	// let it crash and defencive programming are two vision for programming
-	return c.Get("constant.AuthMiddlewareContextKey").(*authservice.Claims)
+	return c.Get(config.AuthMiddlewareContextKey).(*authservice.Claims)
 }
 
 func (h Handler) userProfile(c echo.Context) error {

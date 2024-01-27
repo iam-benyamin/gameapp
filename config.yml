@@ -1,0 +1,12 @@
+---
+type: yml
+auth:
+  sign_key: hello
+
+mysql:
+  host: localhost
+  port: 3308
+  db_name: game_db
+
+http_server:
+  port: 1986

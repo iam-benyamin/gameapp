@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"gameapp/config"
 	"gameapp/delivery/httpserver"
 	"gameapp/repository/migrator"
@@ -8,28 +9,23 @@ import (
 	"gameapp/service/authservice"
 	"gameapp/service/userservice"
 	"gameapp/validator/uservalidator"
-	"time"
-)
-
-const (
-	JwtSignKey                 = "jwt_secret"
-	AccessTokenSubject         = "ac"
-	RefreshTokenSubject        = "rt"
-	AccessTokenExpireDuration  = time.Hour * 24
-	RefreshTokenExpireDuration = time.Hour * 24 * 7
 )
 
 // TODO: show migration table name
 // TODO: add limit to Up and Down
 func main() {
+	// TODO: read config path from command line
+	cfg2 := config.Load("config.yml")
+	fmt.Printf("cfg2 : %+v\n", cfg2)
+
 	cfg := config.Config{
 		HTTPServer: config.HTTPServer{Port: 1986},
 		Auth: authservice.Config{
-			SignKey:               JwtSignKey,
-			AccessExpirationTime:  AccessTokenExpireDuration,
-			RefreshExpirationTime: RefreshTokenExpireDuration,
-			AccessSubject:         AccessTokenSubject,
-			RefreshSubject:        RefreshTokenSubject,
+			SignKey:               config.JwtSignKey,
+			AccessExpirationTime:  config.AccessTokenExpireDuration,
+			RefreshExpirationTime: config.RefreshTokenExpireDuration,
+			AccessSubject:         config.AccessTokenSubject,
+			RefreshSubject:        config.RefreshTokenSubject,
 		},
 		Mysql: mysql.Config{
 			Username: "gameapp",

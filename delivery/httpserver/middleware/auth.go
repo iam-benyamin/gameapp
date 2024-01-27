@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"gameapp/pkg/constant"
+	cfg "gameapp/config"
 	"gameapp/service/authservice"
 	"github.com/labstack/echo/v4"
 
@@ -11,7 +11,7 @@ import (
 // Closure: a function which return function or higher order function
 func Auth(service authservice.Service, config authservice.Config) echo.MiddlewareFunc {
 	return mw.WithConfig(mw.Config{
-		ContextKey:    constant.AuthMiddlewareContextKey,
+		ContextKey:    cfg.AuthMiddlewareContextKey,
 		SigningKey:    []byte(config.SignKey),
 		SigningMethod: "HS256",
 		ParseTokenFunc: func(c echo.Context, auth string) (interface{}, error) {
