@@ -1,4 +1,4 @@
-package dto // Package dto means data transfer object
+package param // Package param means data transfer object
 
 type RegisterRequest struct {
 	Name        string `json:"name"`         // struct tag are like meta information and compiler will ignore them

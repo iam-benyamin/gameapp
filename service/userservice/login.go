@@ -2,44 +2,40 @@ package userservice
 
 import (
 	"fmt"
-	"gameapp/dto"
+	"gameapp/param"
 	"gameapp/pkg/richerror"
 )
 
-func (s Service) Login(req dto.LoginRequest) (dto.LoginResponse, error) {
+func (s Service) Login(req param.LoginRequest) (param.LoginResponse, error) {
 	// TODO: it would be better to user two separated method for existence check and GetUserByPhoneNumber
 	const op = "userservice.Login"
 
-	user, exist, err := s.repo.GetUserByPhoneNumber(req.PhoneNumber)
+	user, err := s.repo.GetUserByPhoneNumber(req.PhoneNumber)
 	if err != nil {
-		return dto.LoginResponse{}, richerror.New(op).WithErr(err).
+		return param.LoginResponse{}, richerror.New(op).WithErr(err).
 			WithMeta(map[string]interface{}{"phone_number": req.PhoneNumber})
 	}
 
-	if !exist {
-		return dto.LoginResponse{}, fmt.Errorf("username or password is not correct")
-	}
-
 	if user.Password != GetMD5Hash(req.Password) {
-		return dto.LoginResponse{}, fmt.Errorf("username or password is not correct")
+		return param.LoginResponse{}, fmt.Errorf("username or password is not correct")
 	}
 
 	accessToken, err := s.auth.CreateAccessToken(user)
 	if err != nil {
-		return dto.LoginResponse{}, fmt.Errorf("unexpected error: %w", err)
+		return param.LoginResponse{}, fmt.Errorf("unexpected error: %w", err)
 	}
 
 	refreshToken, err := s.auth.CreateRefreshToken(user)
 	if err != nil {
-		return dto.LoginResponse{}, fmt.Errorf("unexpected error : %w", err)
+		return param.LoginResponse{}, fmt.Errorf("unexpected error : %w", err)
 	}
 
-	return dto.LoginResponse{
-		Token: dto.Tokens{
+	return param.LoginResponse{
+		Token: param.Tokens{
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
 		},
-		User: dto.UserInfo{
+		User: param.UserInfo{
 			ID:          user.ID,
 			PhoneNumber: user.PhoneNumber,
 			Name:        user.Name,
