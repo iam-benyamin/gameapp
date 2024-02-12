@@ -5,7 +5,5 @@ type User struct {
 	PhoneNumber string
 	Name        string
 	Password    string
-	// Avatar      string
-	//createdAt time.Time
-	//updatedAt time.Time
+	Role        Role
 }

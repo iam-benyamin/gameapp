@@ -1,11 +1,11 @@
 -- +migrate Up
 -- SQL in section 'Up' is executed when this migration is applied
-CREATE TABLE users (
-    id int primary key AUTO_INCREMENT,
-    name varchar(255) not null ,
-    phone_number varchar(255) not null unique,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE `users` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `name` VARCHAR(191) NOT NULL,
+    `phone_number` VARCHAR(191) NOT NULL UNIQUE ,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- +migrate Down
-DROP TABLE users;
+DROP TABLE `users`;

@@ -15,6 +15,7 @@ import (
 // TODO: add limit to Up and Down
 func main() {
 	// TODO: read config path from command line
+	// TODO: merge  cfg with cfg2
 	cfg2 := config.Load("config.yml")
 	fmt.Printf("cfg2 : %+v\n", cfg2)
 
