@@ -3,8 +3,11 @@ package httpserver
 import (
 	"fmt"
 	"gameapp/config"
+	"gameapp/delivery/httpserver/backofficeuserhandler"
 	"gameapp/delivery/httpserver/userhandler"
+	"gameapp/service/authorizationservice"
 	"gameapp/service/authservice"
+	"gameapp/service/backofficeuserservice"
 	"gameapp/service/userservice"
 	"gameapp/validator/uservalidator"
 	"github.com/labstack/echo/v4"
@@ -12,14 +15,19 @@ import (
 )
 
 type Server struct {
-	config      config.Config
-	userHandler userhandler.Handler
+	config                config.Config
+	userHandler           userhandler.Handler
+	backofficeUserHandler backofficeuserhandler.Handler
 }
 
-func New(config config.Config, authSVC authservice.Service, userSVC userservice.Service, userValidator uservalidator.Validator) Server {
+func New(config config.Config, authSVC authservice.Service,
+	userSVC userservice.Service, userValidator uservalidator.Validator,
+	backofficeUserHandlerSvc backofficeuserservice.Service, authorizationSvc authorizationservice.Service) Server {
+
 	return Server{
-		config:      config,
-		userHandler: userhandler.New(config.Auth, authSVC, userSVC, userValidator),
+		config:                config,
+		userHandler:           userhandler.New(config.Auth, authSVC, userSVC, userValidator),
+		backofficeUserHandler: backofficeuserhandler.New(config.Auth, authSVC, backofficeUserHandlerSvc, authorizationSvc),
 	}
 }
 
@@ -35,6 +43,7 @@ func (s Server) Serve() {
 	e.GET("/heath-check/", s.healthCheck)
 
 	s.userHandler.SetUserRouts(e)
+	s.backofficeUserHandler.SetUserRouts(e)
 
 	// Start server
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", s.config.HTTPServer.Port)))

@@ -21,6 +21,10 @@ type MySQLDB struct {
 	db     *sql.DB
 }
 
+func (m *MySQLDB) Conn() *sql.DB {
+	return m.db
+}
+
 func New(config Config) *MySQLDB {
 	// parseTime=true change output of []uint8 to time.Time for mysql
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@(%s:%d)/%s?parseTime=true",

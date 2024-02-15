@@ -6,7 +6,11 @@ import (
 	"gameapp/delivery/httpserver"
 	"gameapp/repository/migrator"
 	"gameapp/repository/mysql"
+	"gameapp/repository/mysql/mysqlaccesscontrol"
+	"gameapp/repository/mysql/mysqluser"
+	"gameapp/service/authorizationservice"
 	"gameapp/service/authservice"
+	"gameapp/service/backofficeuserservice"
 	"gameapp/service/userservice"
 	"gameapp/validator/uservalidator"
 )
@@ -15,7 +19,7 @@ import (
 // TODO: add limit to Up and Down
 func main() {
 	// TODO: read config path from command line
-	// TODO: merge  cfg with cfg2
+	// TODO: merge  cfg with cfg2exi
 	cfg2 := config.Load("config.yml")
 	fmt.Printf("cfg2 : %+v\n", cfg2)
 
@@ -38,22 +42,30 @@ func main() {
 	}
 
 	mgr := migrator.New(cfg.Mysql)
+	//mgr.Down()
 	mgr.Up()
-	// mgr.Down()
 
-	authSvc, userSvc, userValidator := setupServices(cfg)
+	authSvc, userSvc, userValidator, backofficeSvc, authorizationSvc := setupServices(cfg)
 
-	server := httpserver.New(cfg, authSvc, userSvc, userValidator)
+	server := httpserver.New(cfg, authSvc, userSvc, userValidator, backofficeSvc, authorizationSvc)
+
 	server.Serve()
 }
 
-func setupServices(cfg config.Config) (authservice.Service, userservice.Service, uservalidator.Validator) {
+func setupServices(cfg config.Config) (
+	authservice.Service, userservice.Service, uservalidator.Validator,
+	backofficeuserservice.Service, authorizationservice.Service) {
 	authSvc := authservice.New(cfg.Auth)
 
 	MysqlRepo := mysql.New(cfg.Mysql)
-	UserSvc := userservice.New(authSvc, MysqlRepo)
+	userMysql := mysqluser.New(MysqlRepo)
+	userSvc := userservice.New(authSvc, userMysql)
+	backofficeUserSvc := backofficeuserservice.New()
 
-	uV := uservalidator.New(MysqlRepo)
+	aclMysql := mysqlaccesscontrol.New(MysqlRepo)
+	authorizationSvc := authorizationservice.New(aclMysql)
 
-	return authSvc, UserSvc, uV
+	uV := uservalidator.New(userMysql)
+
+	return authSvc, userSvc, uV, backofficeUserSvc, authorizationSvc
 }
