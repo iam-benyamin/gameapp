@@ -6,7 +6,18 @@ auth:
 mysql:
   host: localhost
   port: 3308
-  db_name: game_db
+  db_name: "gameapp_db"
+  username: "gameapp"
+  password: "gameappt0lk2o20"
 
 http_server:
   port: 1986
+
+redis:
+  host: localhost
+  port: 6380
+  password: ""
+  db: 0
+
+matching_service:
+  waiting_timeout: "2m"
