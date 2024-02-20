@@ -10,6 +10,7 @@ import (
 	"gameapp/repository/mysql/mysqlaccesscontrol"
 	"gameapp/repository/mysql/mysqluser"
 	"gameapp/repository/redis/redismatching"
+	"gameapp/scheduler"
 	"gameapp/service/authorizationservice"
 	"gameapp/service/authservice"
 	"gameapp/service/backofficeuserservice"
@@ -17,25 +18,41 @@ import (
 	"gameapp/service/userservice"
 	"gameapp/validator/matchingvalidator"
 	"gameapp/validator/uservalidator"
+	"os"
+	"os/signal"
+	"time"
 )
 
-// TODO: show migration table name
-// TODO: add limit to Up and Down
 func main() {
-	// TODO: read config path from command line
-	// TODO: merge  cfg with cfg2exi
 	cfg := config.Load("config.yml")
-	fmt.Printf("cfg : %+v\n", cfg)
+	//fmt.Printf("cfg : %+v\n", cfg)
 
 	mgr := migrator.New(cfg.Mysql)
-	//mgr.Down()
 	mgr.Up()
+	//mgr.Down()
 
 	// TODO: add struct and these returned items as struct field
 	authSvc, userSvc, userValidator, backofficeSvc, authorizationSvc, matchingValidator, matchingSvc := setupServices(cfg)
-	server := httpserver.New(cfg, authSvc, userSvc, userValidator, backofficeSvc, authorizationSvc, matchingSvc, matchingValidator)
 
-	server.Serve()
+	done := make(chan bool)
+
+	go func() {
+		sch := scheduler.New()
+		sch.Start(done)
+	}()
+
+	go func() {
+		server := httpserver.New(cfg, authSvc, userSvc, userValidator, backofficeSvc, authorizationSvc, matchingSvc, matchingValidator)
+		server.Serve()
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	fmt.Println("\nreceived Interrupt signal, shutting down gracefully...")
+
+	done <- true
+	time.Sleep(5 * time.Second)
 }
 
 func setupServices(cfg config.Config) (

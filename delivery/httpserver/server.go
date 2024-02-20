@@ -54,5 +54,7 @@ func (s Server) Serve() {
 	s.matchingHandler.SetSetMatchingRouts(e)
 
 	// Start server
-	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", s.config.HTTPServer.Port)))
+	address := fmt.Sprintf(":%d", s.config.HTTPServer.Port)
+	fmt.Printf("start echo server on %s\n", address)
+	e.Logger.Fatal(e.Start(address))
 }
