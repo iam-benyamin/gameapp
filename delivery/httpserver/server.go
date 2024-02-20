@@ -22,6 +22,7 @@ type Server struct {
 	userHandler           userhandler.Handler
 	backofficeUserHandler backofficeuserhandler.Handler
 	matchingHandler       matchinghandler.Handler
+	Router                *echo.Echo
 }
 
 func New(config config.Config, authSVC authservice.Service,
@@ -31,6 +32,7 @@ func New(config config.Config, authSVC authservice.Service,
 ) Server {
 
 	return Server{
+		Router:                echo.New(),
 		config:                config,
 		userHandler:           userhandler.New(config.Auth, authSVC, userSVC, userValidator),
 		backofficeUserHandler: backofficeuserhandler.New(config.Auth, authSVC, backofficeUserHandlerSvc, authorizationSvc),
@@ -39,22 +41,19 @@ func New(config config.Config, authSVC authservice.Service,
 }
 
 func (s Server) Serve() {
-	// Echo instance
-	e := echo.New()
-
 	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
+	s.Router.Use(middleware.Logger())
+	s.Router.Use(middleware.Recover())
 
 	// Routes
-	e.GET("/heath-check/", s.healthCheck)
+	s.Router.GET("/heath-check/", s.healthCheck)
 
-	s.userHandler.SetUserRouts(e)
-	s.backofficeUserHandler.SetUserRouts(e)
-	s.matchingHandler.SetSetMatchingRouts(e)
+	s.userHandler.SetUserRouts(s.Router)
+	s.backofficeUserHandler.SetUserRouts(s.Router)
+	s.matchingHandler.SetSetMatchingRouts(s.Router)
 
 	// Start server
 	address := fmt.Sprintf(":%d", s.config.HTTPServer.Port)
 	fmt.Printf("start echo server on %s\n", address)
-	e.Logger.Fatal(e.Start(address))
+	s.Router.Logger.Fatal(s.Router.Start(address))
 }

@@ -1,6 +1,7 @@
 package mysqluser
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"gameapp/entity"
@@ -61,10 +62,10 @@ func (d *DB) GetUserByPhoneNumber(phoneNumber string) (entity.User, error) {
 	return user, nil
 }
 
-func (d *DB) GetUserByID(UserID uint) (entity.User, error) {
+func (d *DB) GetUserByID(ctx context.Context, UserID uint) (entity.User, error) {
 	const op = "mysql.GetUserByID"
 
-	row := d.conn.Conn().QueryRow(`SELECT * FROM users WHERE id = ?`, UserID)
+	row := d.conn.Conn().QueryRowContext(ctx, `SELECT * FROM users WHERE id = ?`, UserID)
 
 	user, err := scanUser(row)
 	if err != nil {

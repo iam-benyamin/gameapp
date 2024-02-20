@@ -5,24 +5,24 @@ import (
 	"time"
 )
 
-// Scheduler is long-running process
 type Scheduler struct{}
 
 func New() Scheduler {
 	return Scheduler{}
 }
 
+// Start long-running process
 func (s Scheduler) Start(done <-chan bool) {
-	fmt.Println("start Scheduler")
-
+	fmt.Println("scheduler started")
 	for {
 		select {
 		case <-done:
-			fmt.Println("stopping schedulers..")
+			// wait to finish job
+			fmt.Println("scheduler stopping..")
 			return
 		default:
 			now := time.Now()
-			fmt.Println("scheduler now: ", now)
+			fmt.Println("scheduler now", now)
 			time.Sleep(3 * time.Second)
 		}
 	}

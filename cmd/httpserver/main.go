@@ -11,7 +11,6 @@ import (
 	"gameapp/repository/mysql/mysqlaccesscontrol"
 	"gameapp/repository/mysql/mysqluser"
 	"gameapp/repository/redis/redismatching"
-	"gameapp/scheduler"
 	"gameapp/service/authorizationservice"
 	"gameapp/service/authservice"
 	"gameapp/service/backofficeuserservice"
@@ -19,10 +18,8 @@ import (
 	"gameapp/service/userservice"
 	"gameapp/validator/matchingvalidator"
 	"gameapp/validator/uservalidator"
-
 	"os"
 	"os/signal"
-	"time"
 )
 
 func main() {
@@ -35,15 +32,8 @@ func main() {
 
 	// TODO: add struct and these returned items as struct field
 	authSvc, userSvc, userValidator, backofficeSvc, authorizationSvc, matchingValidator, matchingSvc := setupServices(cfg)
-
-	done := make(chan bool)
-
-	go func() {
-		sch := scheduler.New()
-		sch.Start(done)
-	}()
-
 	server := httpserver.New(cfg, authSvc, userSvc, userValidator, backofficeSvc, authorizationSvc, matchingSvc, matchingValidator)
+
 	go func() {
 		server.Serve()
 	}()
@@ -61,10 +51,6 @@ func main() {
 		fmt.Println("http server shutdown error", err)
 	}
 
-	done <- true
-	time.Sleep(cfg.Application.GracefulShutdownTimeout)
-
-	// TODO: the context doesn't wait for scheduler to finish its job
 	<-ctxWithTimeout.Done()
 }
 
