@@ -37,3 +37,7 @@ func (s Service) AddToWaitingList(req param.AddToWaitingListRequest) (param.AddT
 
 	return param.AddToWaitingListResponse{Timeout: s.config.WaitingTimeout}, nil
 }
+
+func (s Service) MatchWaitedUsers(req param.MatchWaitedUsersRequest) (param.MatchWaitedUsersResponse, error) {
+	return param.MatchWaitedUsersResponse{}, nil
+}

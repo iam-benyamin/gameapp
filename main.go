@@ -19,10 +19,9 @@ import (
 	"gameapp/service/userservice"
 	"gameapp/validator/matchingvalidator"
 	"gameapp/validator/uservalidator"
-
 	"os"
 	"os/signal"
-	"time"
+	"sync"
 )
 
 func main() {
@@ -37,10 +36,12 @@ func main() {
 	authSvc, userSvc, userValidator, backofficeSvc, authorizationSvc, matchingValidator, matchingSvc := setupServices(cfg)
 
 	done := make(chan bool)
-
+	var wg sync.WaitGroup
 	go func() {
-		sch := scheduler.New()
-		sch.Start(done)
+		sch := scheduler.New(matchingSvc)
+
+		wg.Add(1)
+		sch.Start(done, &wg)
 	}()
 
 	server := httpserver.New(cfg, authSvc, userSvc, userValidator, backofficeSvc, authorizationSvc, matchingSvc, matchingValidator)
@@ -62,10 +63,10 @@ func main() {
 	}
 
 	done <- true
-	time.Sleep(cfg.Application.GracefulShutdownTimeout)
 
-	// TODO: the context doesn't wait for scheduler to finish its job
+	// TODO: dose order of ctx.Done & wg.Waite matter?
 	<-ctxWithTimeout.Done()
+	wg.Wait()
 }
 
 func setupServices(cfg config.Config) (
