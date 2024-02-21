@@ -9,23 +9,29 @@ import (
 	"time"
 )
 
+type Config struct {
+	MatchWaitedUserIntervalInSeconds int64 `koanf:"match_waited_user_interval_in_seconds"`
+}
+
+// Scheduler long-running process
 type Scheduler struct {
 	sch      *gocron.Scheduler
 	matchSvc matchingservice.Service
+	config   Config
 }
 
-func New(matchSvc matchingservice.Service) Scheduler {
+func New(matchSvc matchingservice.Service, config Config) Scheduler {
 	return Scheduler{
 		sch:      gocron.NewScheduler(time.UTC),
 		matchSvc: matchSvc,
+		config:   config,
 	}
 }
 
-// Start long-running process
 func (s Scheduler) Start(done <-chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	s.sch.Every(5).Second().Do(s.MatchWaitedUser)
+	s.sch.Every(s.config.MatchWaitedUserIntervalInSeconds).Second().Do(s.MatchWaitedUser)
 
 	s.sch.StartAsync()
 
@@ -36,5 +42,6 @@ func (s Scheduler) Start(done <-chan bool, wg *sync.WaitGroup) {
 }
 
 func (s Scheduler) MatchWaitedUser() {
+	fmt.Println("scheduler.MatchWaitedUser")
 	s.matchSvc.MatchWaitedUsers(param.MatchWaitedUsersRequest{})
 }
