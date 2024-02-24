@@ -32,7 +32,10 @@ func New(matchSvc matchingservice.Service, config Config) Scheduler {
 func (s Scheduler) Start(done <-chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	s.sch.Every(s.config.MatchWaitedUserIntervalInSeconds).Second().Do(s.MatchWaitedUser)
+	_, err := s.sch.Every(30).Second().Do(s.MatchWaitedUser)
+	if err != nil {
+		fmt.Println("scheduler error", err)
+	}
 
 	s.sch.StartAsync()
 

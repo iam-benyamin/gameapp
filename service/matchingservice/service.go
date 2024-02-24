@@ -18,7 +18,7 @@ type Repo interface {
 }
 
 type PresenceClient interface {
-	getPresence(ctx context.Context, request param.GetPresenceRequest) (param.GetPresenceResponse, error)
+	GetPresence(ctx context.Context, request param.GetPresenceRequest) (param.GetPresenceResponse, error)
 }
 
 type Config struct {
@@ -84,7 +84,7 @@ func (s Service) match(ctx context.Context, category entity.Category, wg *sync.W
 	// TODO: merge presence list  with list based on userID
 	// also consider the presence timestamp of each user
 	// and remove users from waiting list if the users timestamp is older than 20 second
-	presenceList, err := s.presenceClient.getPresence(ctx, param.GetPresenceRequest{UserIDs: userIDs})
+	presenceList, err := s.presenceClient.GetPresence(ctx, param.GetPresenceRequest{UserIDs: userIDs})
 	if err != nil {
 		// TODO: log error
 		// TODO: update metrics
