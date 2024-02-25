@@ -36,8 +36,14 @@ func main() {
 	mgr.Up()
 	//mgr.Down()
 
+	presenceGrpcConn, err := grpc.Dial(":8086", grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	defer presenceGrpcConn.Close()
+
 	// TODO: add struct and these returned items as struct field
-	authSvc, userSvc, userValidator, backofficeSvc, authorizationSvc, matchingValidator, matchingSvc, presenceSvc := setupServices(cfg)
+	authSvc, userSvc, userValidator, backofficeSvc, authorizationSvc, matchingValidator, matchingSvc, presenceSvc := setupServices(cfg, presenceGrpcConn)
 
 	done := make(chan bool)
 	var wg sync.WaitGroup
@@ -73,7 +79,7 @@ func main() {
 	wg.Wait()
 }
 
-func setupServices(cfg config.Config) (
+func setupServices(cfg config.Config, presenceGrpcConn *grpc.ClientConn) (
 	authservice.Service, userservice.Service, uservalidator.Validator,
 	backofficeuserservice.Service, authorizationservice.Service,
 	matchingvalidator.Validator, matchingservice.Service,
@@ -99,13 +105,8 @@ func setupServices(cfg config.Config) (
 	presenceSvc := presenceservice.New(cfg.PresenceService, presencesRepo)
 
 	matchingRepo := redismatching.New(redisAdapter)
-	// TODO: replace presenceSvc with presence grpc client
-	conn, err := grpc.Dial(":8086", grpc.WithInsecure())
-	if err != nil {
-		panic(err)
-	}
-	defer conn.Close()
-	presenceAdapter := presenceClient.New(conn)
+
+	presenceAdapter := presenceClient.New(presenceGrpcConn)
 
 	matchingSvc := matchingservice.New(cfg.MatchingService, matchingRepo, presenceAdapter)
 

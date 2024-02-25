@@ -32,7 +32,7 @@ func New(matchSvc matchingservice.Service, config Config) Scheduler {
 func (s Scheduler) Start(done <-chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	_, err := s.sch.Every(30).Second().Do(s.MatchWaitedUser)
+	_, err := s.sch.Every(int(s.config.MatchWaitedUserIntervalInSeconds)).Second().Do(s.MatchWaitedUser)
 	if err != nil {
 		fmt.Println("scheduler error", err)
 	}
@@ -46,6 +46,7 @@ func (s Scheduler) Start(done <-chan bool, wg *sync.WaitGroup) {
 }
 
 func (s Scheduler) MatchWaitedUser() {
+	fmt.Println("scheduler.MatchWaitedUser")
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
