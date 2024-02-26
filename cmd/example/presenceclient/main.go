@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	// TODO: fix grpc server bug with lesson 22 fix bug and this commit https://github.com/gocasts-bootcamp/gameapp/commit/3482896ba71b044da19c8acb397df308d4c893d0
 	conn, err := grpc.Dial(":8086", grpc.WithInsecure())
 	if err != nil {
 		panic(err)
