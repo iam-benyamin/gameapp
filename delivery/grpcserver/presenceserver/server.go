@@ -3,7 +3,7 @@ package presenceserver
 import (
 	"context"
 	"fmt"
-	"gameapp/contract/golang/presence"
+	"gameapp/contract/goproto/presence"
 	"gameapp/param"
 	"gameapp/pkg/protobufmapper"
 	"gameapp/pkg/slice"

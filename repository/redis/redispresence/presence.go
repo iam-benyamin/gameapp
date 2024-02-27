@@ -3,6 +3,7 @@ package redispresence
 import (
 	"context"
 	"gameapp/pkg/richerror"
+	"gameapp/pkg/timestamp"
 	"time"
 )
 
@@ -14,4 +15,16 @@ func (d DB) Upsert(ctx context.Context, key string, timestamp int64, expirationT
 	}
 
 	return nil
+}
+
+func (d DB) GetPresence(ctx context.Context, prefixKey string, userIDs []uint) (map[uint]int64, error) {
+	// TODO: implement me
+	// TODO: how to gte multiple redis key at same time
+	m := make(map[uint]int64)
+
+	for _, u := range userIDs {
+		m[u] = timestamp.Add(-100 * time.Millisecond)
+	}
+
+	return m, nil
 }
