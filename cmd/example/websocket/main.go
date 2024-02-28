@@ -1,29 +1,26 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"gameapp/entity"
-	"gameapp/pkg/protobufencoder"
 	"github.com/labstack/gommon/log"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 )
 
-func printDecodedNotification() {
-	d := protobufencoder.EncodeNotification(entity.Notification{
-		EventType: "ping",
-		Payload:   "hello",
-	})
-
-	fmt.Println("d", d)
+func producer(remoteAddr string, channel chan string) {
+	for {
+		channel <- remoteAddr
+		time.Sleep(5 * time.Second)
+	}
 }
 
 func main() {
-	printDecodedNotification()
-
 	http.ListenAndServe(":8080", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, _, _, err := ws.UpgradeHTTP(r, w)
 		if err != nil {
@@ -35,24 +32,11 @@ func main() {
 
 		go readMessage(conn, done)
 
-		<-done
+		channel := make(chan string)
+		go producer(r.RemoteAddr, channel)
+		go writeMessage(conn, channel)
 
-		//go func() {
-		//	defer conn.Close()
-		//
-		//	for {
-		//		msg, op, err := wsutil.ReadClientData(conn)
-		//		if err != nil {
-		//			fmt.Println("read client err :", err)
-		//		}
-		//		err = wsutil.WriteServerMessage(conn, op, msg)
-		//		if err != nil {
-		//			fmt.Println("server message err: ", err)
-		//		}
-		//		fmt.Println("msg is :", string(msg))
-		//		fmt.Println("op is :", string(op))
-		//	}
-		//}()
+		<-done
 	}))
 }
 
@@ -62,11 +46,25 @@ func readMessage(conn net.Conn, done chan<- bool) {
 		if err != nil {
 			log.Print(err)
 			done <- true
+
+			return
 		}
-		fmt.Println("msg", string(msg))
-		notif := protobufencoder.DecodeNotification(string(msg))
+
+		var notif entity.Notification
+		//notif := protobufencoder.DecodeNotification(string(msg))
+		if err := json.Unmarshal(msg, &notif); err != nil {
+			panic(err)
+		}
 
 		fmt.Println("opCode", opCode)
 		fmt.Println("notif", notif)
+	}
+}
+
+func writeMessage(conn net.Conn, channel <-chan string) {
+	for data := range channel {
+		if err := wsutil.WriteServerMessage(conn, ws.OpText, []byte(data)); err != nil {
+			panic(err)
+		}
 	}
 }
