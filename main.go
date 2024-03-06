@@ -7,6 +7,7 @@ import (
 	"gameapp/adapter/redis"
 	"gameapp/config"
 	"gameapp/delivery/httpserver"
+	"gameapp/logger"
 	"gameapp/repository/migrator"
 	"gameapp/repository/mysql"
 	"gameapp/repository/mysql/mysqlaccesscontrol"
@@ -22,6 +23,7 @@ import (
 	"gameapp/service/userservice"
 	"gameapp/validator/matchingvalidator"
 	"gameapp/validator/uservalidator"
+	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"sync"
@@ -29,17 +31,12 @@ import (
 
 func main() {
 	cfg := config.Load("config.yml")
-	fmt.Printf("cfg : %+v\n", cfg)
+	//fmt.Printf("cfg : %+v\n", cfg)
+	logger.Logger.Named("main").Info("config", zap.Any("config", cfg))
 
 	mgr := migrator.New(cfg.Mysql)
 	mgr.Up()
 	//mgr.Down()
-
-	//presenceGrpcConn, err := grpc.Dial(":8086", grpc.WithInsecure())
-	//if err != nil {
-	//	panic(err)
-	//}
-	//defer presenceGrpcConn.Close()
 
 	// TODO: add struct and these returned items as struct field
 	authSvc, userSvc, userValidator, backofficeSvc, authorizationSvc, matchingValidator, matchingSvc, presenceSvc := setupServices(cfg)
@@ -68,6 +65,7 @@ func main() {
 	defer cancel()
 
 	if err := server.Router.Shutdown(ctxWithTimeout); err != nil {
+		// TODO: replace all fmt.Print.. and std log calls with logger.Logger
 		fmt.Println("http server shutdown error", err)
 	}
 
