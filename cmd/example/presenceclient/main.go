@@ -16,12 +16,12 @@ func main() {
 	}
 	defer conn.Close()
 
-	client := presenceClient.New(conn)
+	client := presenceClient.New("8086")
 	//client := presence.NewPresenceServiceClient(conn)
 	//resp, err := client.GetPresence(context.Background(), &presence.GetPresenceRequest{UserIds: []uint64{1, 2, 3, 4}})
 	resp, err := client.GetPresence(context.Background(), param.GetPresenceRequest{UserIDs: []uint{1, 2, 3, 4, 5, 6}})
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 
 	for _, item := range resp.Items {

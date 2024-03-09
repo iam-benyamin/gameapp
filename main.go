@@ -24,12 +24,22 @@ import (
 	"gameapp/validator/matchingvalidator"
 	"gameapp/validator/uservalidator"
 	"go.uber.org/zap"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
+
+	_ "net/http/pprof"
 )
 
 func main() {
+	go func() {
+		// TODO - add enabler config variable
+		// curl http://localhost:8099/debug/pprof/goroutine --output goroutine.o
+		//  go tool pprof -http=:8086 ./goroutine.o
+		http.ListenAndServe(":8099", nil)
+	}()
+
 	cfg := config.Load("config.yml")
 	//fmt.Printf("cfg : %+v\n", cfg)
 	logger.Logger.Named("main").Info("config", zap.Any("config", cfg))
