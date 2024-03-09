@@ -43,14 +43,11 @@ func (s Server) Start() {
 		panic(err)
 	}
 
-	// protobuf presence server
-	presenceSvcServer := Server{}
-
 	// grpc server
 	grpcServer := grpc.NewServer()
 
 	// protobuf presence server register into grpc server
-	presence.RegisterPresenceServiceServer(grpcServer, &presenceSvcServer)
+	presence.RegisterPresenceServiceServer(grpcServer, &s)
 
 	// server grpc server by listener
 	fmt.Println("presence grpc server started on", address)
